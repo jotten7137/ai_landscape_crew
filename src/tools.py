@@ -1,7 +1,13 @@
 import os
+import ast
+import datetime as dt
+
 from exa_py import Exa
 from langchain.agents import tool
-from typing import List
+from typing import List, Union
+
+today = dt.date.today()
+week_ago = today - dt.timedelta(days=7)
 
 class ExaSearchToolset:
     @tool
@@ -11,7 +17,8 @@ class ExaSearchToolset:
             f"latest artificial intelligence trends {query}",
             use_autoprompt=True,
             num_results=5,
-            start_published_date="2023-01-01"
+            start_published_date= str(week_ago),
+            end_published_date = str(today)
         )
 
     @tool
@@ -21,8 +28,8 @@ class ExaSearchToolset:
             f"artificial intelligence research paper {query}",
             use_autoprompt=True,
             num_results=5,
-            content_type="research-article",
-            start_published_date="2023-01-01"
+            start_published_date= str(week_ago),
+            end_published_date = str(today)
         )
 
     @tool
@@ -32,8 +39,8 @@ class ExaSearchToolset:
             f"artificial intelligence news {query}",
             use_autoprompt=True,
             num_results=5,
-            content_type="news",
-            start_published_date="2023-01-01"
+            start_published_date= str(week_ago),
+            end_published_date = str(today)
         )
 
     @tool
@@ -42,14 +49,45 @@ class ExaSearchToolset:
         return ExaSearchToolset._exa().find_similar(url, num_results=5)
 
     @tool
-    def get_contents(ids: str) -> str:
-        """Get the contents of webpages."""
-        ids = eval(ids)
-        contents = ExaSearchToolset._exa().get_contents(ids)
+    # def get_contents(ids: str) -> str:
+    #     """Get the contents of webpages."""
+    #     ids = eval(ids)
+    #     contents = ExaSearchToolset._exa().get_contents(ids)
+    #     processed_contents = []
+    #     for content in contents:
+    #         processed_content = f"Title: {content.title}\nURL: {content.url}\nContent: {content.text[:1000]}..."
+    #         processed_contents.append(processed_content)
+    #     return "\n\n".join(processed_contents)
+    def get_contents(ids: Union[str, List[str]]) -> str:
+        """Get the contents of webpages.
+        
+        Args:
+            ids (Union[str, List[str]]): A string representation of a list of ids, or a list of ids directly.
+        
+        Returns:
+            str: Processed contents of the webpages.
+        """
+        if isinstance(ids, str):
+            try:
+                ids = ast.literal_eval(ids)
+            except (ValueError, SyntaxError):
+                # If it's not a valid Python literal, assume it's a single ID
+                ids = [ids]
+        
+        if not isinstance(ids, list):
+            raise ValueError("ids must be a list or a string representation of a list")
+        
+        exa = ExaSearchToolset._exa()
         processed_contents = []
-        for content in contents:
-            processed_content = f"Title: {content.title}\nURL: {content.url}\nContent: {content.text[:1000]}..."
-            processed_contents.append(processed_content)
+        
+        for id in ids:
+            try:
+                content = exa.get_contents(id)
+                processed_content = f"Title: {content.title}\nURL: {content.url}\nContent: {content.text[:1000]}..."
+                processed_contents.append(processed_content)
+            except Exception as e:
+                processed_contents.append(f"Error retrieving content for ID {id}: {str(e)}")
+        
         return "\n\n".join(processed_contents)
 
     @tool
@@ -59,7 +97,8 @@ class ExaSearchToolset:
             f"artificial intelligence company {query}",
             use_autoprompt=True,
             num_results=5,
-            start_published_date="2023-01-01"
+            start_published_date= str(week_ago),
+            end_published_date = str(today)
         )
 
     @staticmethod
